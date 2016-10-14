@@ -1,5 +1,5 @@
 """
-MADE BY ASAD AHMED 12-C
+MADE BY ASAD AHMED
 """
 
 from random import randint
