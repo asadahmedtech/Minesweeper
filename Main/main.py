@@ -1,5 +1,5 @@
 """
-MADE BY ASAD AHMED 12-C
+MADE BY ASAD AHMED
 """
 
 from random import randint
@@ -409,7 +409,7 @@ class GameBoard:
 
     def Mainloop(self):
         while not self.gameQuit:
-            
+
             while not self.gameOver:
                 self.gameDisplay.fill(self.white)
                 for event in pygame.event.get():
