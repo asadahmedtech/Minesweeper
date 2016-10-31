@@ -85,8 +85,8 @@ class Tile_Actions(Tile_Create):
         self.FlaggedMap = [['0' for i in range(self.column)]for j in range(self.row)]
         self.OpenMap = [[''for i in range(self.column)]for j in range(self.row)]
         self.FlaggedTile = NOFM
-##        self.__PrintArray(self.NeighbourMap,self.row,self.column)
-
+        ##self.__PrintArray(self.NeighbourMap,self.row,self.column)
+        self.VisitedMap = [['' for i in range(self.column)] for j in range(self.row)]
     def __PrintArray(self,Array,ROW,COL):
         for i in range(ROW):
             for j in range(COL):
@@ -120,11 +120,14 @@ class Tile_Actions(Tile_Create):
 
     def OpenTile(self,coordinate):
         x,y=coordinate
-        if self.NeighbourMap[x][y]=='M':
-            self.OpenMap[x][y]='GO'
-        if self.FlaggedMap[x][y]=='F':
+        if self.FlaggedMap[x][y] == 'F':
             pass
+
+        elif self.NeighbourMap[x][y] == 'M':
+            self.OpenMap[x][y]='GO'
+
         elif self.OpenMap[x][y]=='':
+            self.VisitedMap[x][y] = 'O'
             if self.NeighbourMap[x][y]==0:
                 self.OpenMap[x][y]='O'
                 self.__OpenSurroundingTile(coordinate)
@@ -174,6 +177,8 @@ class GameBoard:
         'uncovered_6':pygame.transform.scale(pygame.image.load('uncovered_tile_6.png'),(self.blockSize,self.blockSize)),
         'uncovered_7':pygame.transform.scale(pygame.image.load('uncovered_tile_7.png'),(self.blockSize,self.blockSize)),
         'uncovered_8':pygame.transform.scale(pygame.image.load('uncovered_tile_8.png'),(self.blockSize,self.blockSize)),
+            'covered_mine': pygame.transform.scale(pygame.image.load('covered_mine.png'),
+                                                   (self.blockSize, self.blockSize)),
         'flagged':pygame.transform.scale(pygame.image.load('flagged_tile.png'),(self.blockSize,self.blockSize)),
         'correct_mine':pygame.transform.scale(pygame.image.load('correct_tile.png'),(self.blockSize,self.blockSize)),
         'mined':pygame.transform.scale(pygame.image.load('mined_tile.png'),(self.blockSize,self.blockSize)),
@@ -208,6 +213,10 @@ class GameBoard:
         self.TimeDisplay = False
         self.gameStarted = False
 
+        self.stringInput = ''
+        self.cheatCode = '1729'
+        self.cheatActivated = False
+        self.cheatUsed = False
     def __getDimens(self):
         x = (self.blockSize*self.column)
         y = self.Top_bar+(self.blockSize*self.row)
@@ -258,18 +267,36 @@ class GameBoard:
                     self.MineObject.Flag((x,y))
 
             elif status == 1:#for double click
-                Neighboursatisfy = True
-                for i in range(x-1,x+2):
-                    for j in range(y-1,y+2):
-                        if i>=0 and j>=0:
-                            if self.MineObject.NeighbourMap[i][j]=='M' and self.MineObject.FlaggedMap[i][j]!='F':
-                                Neighboursatisfy = False
+                Neighboursatisfy, WrongFlag, Iter = True, False, 0
+                while Iter < 2:
+                    for i in range(x - 1, x + 2):
+                        for j in range(y - 1, y + 2):
+                            try:
+                                if i >= 0 and j >= 0:
+                                    if self.MineObject.NeighbourMap[i][j] == 'M' and self.MineObject.FlaggedMap[i][
+                                        j] != 'F':
+                                        Neighboursatisfy = False
+                                    if (i, j) not in self.MineObject.MinesCoordinate and self.MineObject.FlaggedMap[i][
+                                        j] == 'F':
+                                        WrongFlag = True
+                                    if WrongFlag:
+                                        if (i, j) in self.MineObject.MinesCoordinate:
+                                            Neighboursatisfy = False
+                                            self.gameOver = True
+                                            self.mineopened = True
+                                            self.__openAllMine((i, j))
+                            except IndexError:
+                                pass
+                    Iter += 1
                 if Neighboursatisfy:
                     for i1 in range(x-1,x+2):
                         for j1 in range(y-1,y+2):
-                            if i1>=0 and j1>=0:
-                                if self.MineObject.NeighbourMap[i1][j1]!='M':
-                                    self.MineObject.OpenTile((i1,j1))
+                            try:
+                                if i1 >= 0 and j1 >= 0:
+                                    if self.MineObject.NeighbourMap[i1][j1] != 'M':
+                                        self.MineObject.OpenTile((i1, j1))
+                            except IndexError:
+                                pass
 
     def __openAllMine(self,coordinate):
         x,y=coordinate
@@ -297,7 +324,10 @@ class GameBoard:
                 elif self.MineObject.OpenMap[i][j] == 'FM':
                     Temp_Image = self.images['correct_mine']
                 elif self.MineObject.OpenMap[i][j] == '':
-                    Temp_Image = self.images['covered']
+                    if self.cheatActivated and self.MineObject.NeighbourMap[i][j] == 'M':
+                        Temp_Image = self.images['covered_mine']
+                    else:
+                        Temp_Image = self.images['covered']
 
                 self.gameDisplay.blit(Temp_Image,(self.blockSize*j,self.Top_bar+self.blockSize*i))
 
@@ -426,21 +456,26 @@ class GameBoard:
                             self.__clickEvent(pygame.mouse.get_pos(),2)
                         if pygame.mouse.get_pressed()[1]:
                             self.__clickEvent(pygame.mouse.get_pos(),1)
+                    if event.type == pygame.KEYDOWN:
+                        if 49 <= event.key <= 57:
+                            self.stringInput += str(chr(event.key))
+
                 self.__GUIDisplay()
                 for Rows in self.MineObject.OpenMap:
                     if 'GO' in Rows:
                         self.gameOver = True
                         self.mineopened = True
-                if self.MineObject.MinesCoordinate == [] and self.MineObject.OpenMap == self.IdealOpen:
+                if self.MineObject.MinesCoordinate == [] and self.MineObject.VisitedMap == self.IdealOpen:
                     self.gameOver = True
                     self.gamewon = True
-                    if self.CurrentScore[0]<(self.HighScore[self.difficulty])[0]:
-                        self.HighScore[self.difficulty]=self.CurrentScore
-                        self.__storeHighScore()
-                    elif self.CurrentScore[0]==(self.HighScore[self.difficulty])[0]:
-                        if self.CurrentScore[1]<(self.HighScore[self.difficulty])[1]:
+                    if not self.cheatUsed:
+                        if self.CurrentScore[0] < (self.HighScore[self.difficulty])[0]:
                             self.HighScore[self.difficulty]=self.CurrentScore
                             self.__storeHighScore()
+                        elif self.CurrentScore[0] == (self.HighScore[self.difficulty])[0]:
+                            if self.CurrentScore[1] < (self.HighScore[self.difficulty])[1]:
+                                self.HighScore[self.difficulty] = self.CurrentScore
+                                self.__storeHighScore()
                 if not self.TimeDisplay:
                     self.__button('00:00' ,self.blockSize ,10,80,30,(242, 242, 242),(247, 39, 39))
                 if self.TimeDisplay:
@@ -459,18 +494,27 @@ class GameBoard:
                     self.startTime = 0
                     self.TimeDisplay = False
                     self.gameStarted = False
+                    self.cheatActivated = False
+                    self.cheatUsed = False
                 self.gameDisplay.blit(self.images['restart'],(buttonX ,buttonY))
                 ### ####
-                ###FOR HOME BUTTON###
+                ### FOR HOME BUTTON ###
                 homeX ,homeY = 0,10
                 if homeX + self.blockSize > cur[0] > homeX and homeY + self.blockSize > cur[1] > homeY and click[0]==1:
                     self.home = True
                     self.startTime = 0
                     self.TimeDisplay = False
                     self.gameStarted = False
+                    self.cheatActivated = False
+                    self.cheatUsed = False
                     self.__init__()
                 self.gameDisplay.blit(self.images['home'],(homeX ,homeY))
                 ########
+                ### FOR CHEAT-CODE TO DISPLAY MINES AND NOT END THE GAME ###
+                if self.cheatCode in self.stringInput:
+                    self.cheatActivated = not self.cheatActivated
+                    self.cheatUsed = True
+                    self.stringInput = ''
                 pygame.display.update()
             for event in pygame.event.get():
                     if event.type==pygame.QUIT:
@@ -487,6 +531,8 @@ class GameBoard:
                 self.gameOver = False
                 self.mineopened = False
                 self.gamewon = False
+                self.cheatActivated = False
+                self.cheatUsed = False
             if self.mineopened :
                 Temp_image = self.images['game_over']
             elif self.gamewon :
@@ -500,6 +546,8 @@ class GameBoard:
                 self.startTime = 0
                 self.TimeDisplay = False
                 self.gameStarted = False
+                self.cheatActivated = False
+                self.cheatUsed = False
                 self.__init__()
             self.gameDisplay.blit(self.images['home'],(homeX ,homeY))
             pygame.display.update()
