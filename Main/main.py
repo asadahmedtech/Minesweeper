@@ -217,12 +217,15 @@ class GameBoard:
         self.cheatCode = '1729'
         self.cheatActivated = False
         self.cheatUsed = False
+
     def __getDimens(self):
+
         x = (self.blockSize*self.column)
         y = self.Top_bar+(self.blockSize*self.row)
         return (x,y)
 
     def __idealMap(self):
+
         Temp_ideal = []
         for i in range(self.row):
             Temp=[]
@@ -235,16 +238,19 @@ class GameBoard:
         return Temp_ideal
 
     def __getHighScore(self):
+
         File = open('HighScore.dat','rb')
         self.HighScore = pickle.load(File)
         File.close()
 
     def __storeHighScore(self):
+
         File = open('HighScore.dat','wb')
         pickle.dump(self.HighScore,File)
         File.close()
 
     def __getPos(self,coordinate):
+
         try:
             y,x=coordinate
             if x <= self.Top_bar:
@@ -254,6 +260,7 @@ class GameBoard:
             return None
 
     def __clickEvent(self,coordinate,status):
+
         if self.__getPos(coordinate) != None :
             x,y=self.__getPos(coordinate)
             if status == 0: #for left click
@@ -299,6 +306,7 @@ class GameBoard:
                                 pass
 
     def __openAllMine(self,coordinate):
+
         x,y=coordinate
         for i in range(self.row):
             for j in range(self.column):
@@ -311,6 +319,7 @@ class GameBoard:
                         self.MineObject.OpenMap[i][j]='M'
 
     def __GUIDisplay(self):
+
         for i in range(self.row):
             for j in range(self.column):
                 if self.MineObject.OpenMap[i][j] == 'O':
@@ -332,6 +341,7 @@ class GameBoard:
                 self.gameDisplay.blit(Temp_Image,(self.blockSize*j,self.Top_bar+self.blockSize*i))
 
     def __button(self,text, buttonx, buttony, width, height,buttoncolor,textcolor,ActiveColor = None,action=None,stat=None):
+
         if ActiveColor != None:
             cur = pygame.mouse.get_pos()
             click = pygame.mouse.get_pressed()
@@ -375,6 +385,7 @@ class GameBoard:
                 self.gameDisplay.blit(textSurf, textRect)
 
     def homePage(self):
+
         self.HomeDimens = (600,400)
         self.homeDisplay = pygame.display.set_mode(self.HomeDimens)
         while self.home:
@@ -403,6 +414,7 @@ class GameBoard:
             pygame.display.update()
 
     def highscorePage(self):
+
         self.highscoreDimens = (600,400)
         self.highscoreDisplay = pygame.display.set_mode(self.highscoreDimens)
         self.__getHighScore()
@@ -438,6 +450,7 @@ class GameBoard:
             pygame.display.update()
 
     def Mainloop(self):
+
         while not self.gameQuit:
 
             while not self.gameOver:
@@ -461,13 +474,19 @@ class GameBoard:
                             self.stringInput += str(chr(event.key))
 
                 self.__GUIDisplay()
+
+                ##  CHECKING FOR GAME OVER
                 for Rows in self.MineObject.OpenMap:
                     if 'GO' in Rows:
                         self.gameOver = True
                         self.mineopened = True
+
+                ## CHECKING FOR GAME WON
                 if self.MineObject.MinesCoordinate == [] and self.MineObject.VisitedMap == self.IdealOpen:
                     self.gameOver = True
                     self.gamewon = True
+
+                    ##  FOR HIGH SCORE
                     if not self.cheatUsed:
                         if self.CurrentScore[0] < (self.HighScore[self.difficulty])[0]:
                             self.HighScore[self.difficulty]=self.CurrentScore
@@ -476,6 +495,8 @@ class GameBoard:
                             if self.CurrentScore[1] < (self.HighScore[self.difficulty])[1]:
                                 self.HighScore[self.difficulty] = self.CurrentScore
                                 self.__storeHighScore()
+
+                ##  FOR TIMER
                 if not self.TimeDisplay:
                     self.__button('00:00' ,self.blockSize ,10,80,30,(242, 242, 242),(247, 39, 39))
                 if self.TimeDisplay:
@@ -485,7 +506,8 @@ class GameBoard:
                     self.CurrentScore = [int(countMins),int(countSecs)]
                     self.__button(countMins+':'+countSecs ,self.blockSize,10,80,30,(242, 242, 242),(247, 39, 39))
                 self.__button('0'+str(self.MineObject.FlaggedTile) if 10 > self.MineObject.FlaggedTile >= 0 else str(self.MineObject.FlaggedTile),self.gameDimens[0]-80,10,80,30,(242, 242, 242),(247, 39, 39))
-                ###FOR RESTART BUTTON###
+
+                ##  FOR RESTART BUTTON
                 cur = pygame.mouse.get_pos()
                 click = pygame.mouse.get_pressed()
                 buttonX ,buttonY = (int(int(self.gameDimens[0])/2 - int(self.blockSize)/2)),(int(self.Top_bar)/2 - int(self.blockSize)/2)
@@ -497,8 +519,8 @@ class GameBoard:
                     self.cheatActivated = False
                     self.cheatUsed = False
                 self.gameDisplay.blit(self.images['restart'],(buttonX ,buttonY))
-                ### ####
-                ### FOR HOME BUTTON ###
+
+                ##  FOR HOME BUTTON
                 homeX ,homeY = 0,10
                 if homeX + self.blockSize > cur[0] > homeX and homeY + self.blockSize > cur[1] > homeY and click[0]==1:
                     self.home = True
@@ -509,17 +531,20 @@ class GameBoard:
                     self.cheatUsed = False
                     self.__init__()
                 self.gameDisplay.blit(self.images['home'],(homeX ,homeY))
-                ########
-                ### FOR CHEAT-CODE TO DISPLAY MINES AND NOT END THE GAME ###
+
+                ##  FOR CHEAT-CODE TO DISPLAY MINES AND NOT END THE GAME
                 if self.cheatCode in self.stringInput:
                     self.cheatActivated = not self.cheatActivated
                     self.cheatUsed = True
                     self.stringInput = ''
+
                 pygame.display.update()
+
             for event in pygame.event.get():
                     if event.type==pygame.QUIT:
                         self.gameQuit = True
 
+            ##  FOR RESTART BUTTON AFTER LOSING GAME
             cur = pygame.mouse.get_pos()
             click = pygame.mouse.get_pressed()
             buttonX ,buttonY = (int(int(self.gameDimens[0])/2 - int(self.blockSize)/2)),(int(self.Top_bar)/2 - int(self.blockSize)/2)
@@ -540,6 +565,8 @@ class GameBoard:
             else:
                 Temp_image = self.images['restart']
             self.gameDisplay.blit(Temp_image,(buttonX ,buttonY))
+
+            ##  FOR HOME BUTTON AFTER LOSING GAME
             homeX ,homeY = 0,10
             if homeX + self.blockSize > cur[0] > homeX and homeY + self.blockSize > cur[1] > homeY and click[0]==1:
                 self.home = True
@@ -550,7 +577,9 @@ class GameBoard:
                 self.cheatUsed = False
                 self.__init__()
             self.gameDisplay.blit(self.images['home'],(homeX ,homeY))
+
             pygame.display.update()
+
         pygame.display.update()
         pygame.quit()
         quit()
