@@ -275,19 +275,19 @@ class GameBoard:
                     self.MineObject.Flag((x,y))
 
             elif status == 1:#for double click
-                Neighboursatisfy, WrongFlag, Iter = True, False, 0
+                Neighboursatisfy, WrongFlag, Iter, No_Flag = True, False, 0, 0
                 while Iter < 2:
                     for i in range(x - 1, x + 2):
                         for j in range(y - 1, y + 2):
                             try:
                                 if i >= 0 and j >= 0:
-                                    if self.MineObject.NeighbourMap[i][j] == 'M' and self.MineObject.FlaggedMap[i][
-                                        j] != 'F':
+                                    if self.MineObject.FlaggedMap[i][j] == 'F' and Iter == 0:
+                                        No_Flag += 1
+                                    if self.MineObject.NeighbourMap[i][j] == 'M' and self.MineObject.FlaggedMap[i][j] != 'F':
                                         Neighboursatisfy = False
-                                    if (i, j) not in self.MineObject.MinesCoordinate and self.MineObject.FlaggedMap[i][
-                                        j] == 'F':
+                                    if (i, j) not in self.MineObject.MinesCoordinate and self.MineObject.FlaggedMap[i][j] == 'F':
                                         WrongFlag = True
-                                    if WrongFlag:
+                                    if WrongFlag and self.MineObject.NeighbourMap[x][y] <= No_Flag and Iter == 1:
                                         if (i, j) in self.MineObject.MinesCoordinate:
                                             Neighboursatisfy = False
                                             self.gameOver = True
